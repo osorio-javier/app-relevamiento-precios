@@ -8,7 +8,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import re
-from serpapi import SerpApiClient  # Usamos el cliente de SerpApi directamente
+from serpapi import GoogleSearch  # Usamos el cliente de SerpApi directamente
 
 # =============================================================================
 # 2. CONFIGURACIÓN DE LA PÁGINA DE STREAMLIT
@@ -74,16 +74,16 @@ if submitted:
             status_text.info(f"🔎 Buscando: '{keyword}'...")
             
             try:
-                # --- LÓGICA DE SERPAPI (Tu código original) ---
-                client = SerpApiClient({"api_key": api_key})
-                result = client.search({
-                    'q': keyword,
-                    'engine': 'google',
-                    'location_requested': 'Mexico',
-                    'gl': country_code,
-                    'hl': 'es-419',
-                    'tbm': 'shop'
-                })
+                params = {
+                    "q": keyword,
+                    "engine": "google",
+                    "gl": country_code,
+                    "hl": "es-419",
+                    "tbm": "shop",
+                    "api_key": api_key
+                }
+                search = GoogleSearch(params)
+                result = search.get_dict()
 
                 shopping_results = result.get('shopping_results', [])
                 if shopping_results:
