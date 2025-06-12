@@ -1,4 +1,4 @@
 streamlit
 pandas
-serpapi
+google-search-results
 numpy
