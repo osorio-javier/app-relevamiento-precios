@@ -18,7 +18,7 @@ st.set_page_config(
 )
 
 st.title("🛒 Herramienta de Relevamiento de Precios")
-st.write("Esta herramienta automatiza la búsqueda de precios en Google Shopping para una lista de productos y los clasifica según su valor.")
+st.write("Esta herramienta analiza los precios en la página de resultados de Google para una lista de productos y los clasifica según su valor.")
 
 # =============================================================================
 # 3. INPUTS DEL USUARIO EN LA BARRA LATERAL (SIDEBAR)
