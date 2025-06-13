@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
-# =============================================================================
-# 1. IMPORTAR LIBRERÍAS
-# =============================================================================
 import streamlit as st
 import pandas as pd
 import numpy as np
 import re
 from serpapi import GoogleSearch
+
+# NUEVO: Inicializar una variable de estado para la depuración
+if 'debug_info_shown' not in st.session_state:
+    st.session_state.debug_info_shown = False
 
 # =============================================================================
 # 2. CONFIGURACIÓN DE LA PÁGINA DE STREAMLIT
@@ -18,7 +19,7 @@ st.set_page_config(
 )
 
 st.title("🛒 Herramienta de Relevamiento de Precios")
-st.write("Esta herramienta analiza los precios en la página de resultados de Google para una lista de productos y los clasifica según su valor.")
+st.write("Esta herramienta automatiza la búsqueda de precios en Google Shopping para una lista de productos y los clasifica según su valor.")
 
 # =============================================================================
 # 3. INPUTS DEL USUARIO EN LA BARRA LATERAL (SIDEBAR)
@@ -28,23 +29,21 @@ with st.sidebar:
 
     with st.form("input_form"):
         api_key = st.text_input("Tu API Key de SerpApi", type="password")
-
         country_code = st.selectbox("País de Búsqueda (gl)", ['mx', 'ar', 'co', 'es', 'us', 'br'], index=0)
-        
         language_code = st.selectbox("Idioma de Búsqueda (hl)", ['es', 'en', 'pt'], index=0)
-
-        # CAMBIO REALIZADO AQUÍ
         keywords_text = st.text_area(
             "Productos a buscar (uno por línea)",
             "Keyword 1\nKeyword 2\nKeyword 3" 
         )
-        
         submitted = st.form_submit_button("📊 Analizar Precios")
 
 # =============================================================================
 # 4. LÓGICA PRINCIPAL DE LA APP
 # =============================================================================
 if submitted:
+    # Reiniciar el estado de depuración con cada envío
+    st.session_state.debug_info_shown = False
+
     if not api_key:
         st.error("Por favor, introduce tu API Key de SerpApi para continuar.")
     elif not keywords_text:
@@ -74,6 +73,16 @@ if submitted:
 
                 shopping_results = result.get('shopping_results', [])
                 if shopping_results:
+                    
+                    # --- INICIO DEL CÓDIGO DE DEPURACIÓN ---
+                    # Le pedimos a la app que nos muestre toda la información
+                    # del primer resultado que encuentre. Solo se mostrará una vez.
+                    if not st.session_state.debug_info_shown:
+                        st.info(f"Información de depuración para '{keyword}':")
+                        st.json(shopping_results[0])
+                        st.session_state.debug_info_shown = True
+                    # --- FIN DEL CÓDIGO DE DEPURACIÓN ---
+
                     for item in shopping_results:
                         all_results.append({
                             'Keyword': keyword,
@@ -117,7 +126,6 @@ if submitted:
                 df_results['price_level'] = np.select(conditions, choices, default='')
             else:
                 df_results['price_level'] = ''
-
 
             desired_columns_order = ['Keyword', 'position', 'title', 'Vendedor', 'price', 'price_level', 'URL']
             df_results = df_results[desired_columns_order]
