@@ -1,18 +1,15 @@
 # -*- coding: utf-8 -*-
 # =============================================================================
 # 1. IMPORTAR LIBRERÍAS
-#    - Se importa streamlit, la base de la app.
-#    - Se quitan las librerías específicas de Colab.
 # =============================================================================
 import streamlit as st
 import pandas as pd
 import numpy as np
 import re
-from serpapi import GoogleSearch  # Usamos el cliente de SerpApi directamente
+from serpapi import GoogleSearch
 
 # =============================================================================
 # 2. CONFIGURACIÓN DE LA PÁGINA DE STREAMLIT
-#    - Esto le da un título a la pestaña del navegador y un ícono.
 # =============================================================================
 st.set_page_config(
     page_title="Relevamiento de Precios",
@@ -25,48 +22,37 @@ st.write("Esta herramienta automatiza la búsqueda de precios en Google Shopping
 
 # =============================================================================
 # 3. INPUTS DEL USUARIO EN LA BARRA LATERAL (SIDEBAR)
-#    - Movemos todos los inputs a una barra lateral para una interfaz más limpia.
-#    - Usamos st.form para que la app no se recargue con cada cambio,
-#      sino solo al presionar el botón "Analizar".
 # =============================================================================
 with st.sidebar:
     st.header("Configuración de la Búsqueda")
 
-    # Usamos un formulario para agrupar los inputs
     with st.form("input_form"):
-        # CAMBIO: Pedimos la API key de forma segura, no está en el código.
         api_key = st.text_input("Tu API Key de SerpApi", type="password")
 
-        # CAMBIO: El usuario puede elegir el país de una lista.
-        country_code = st.selectbox("País de Búsqueda", ['mx', 'ar', 'co', 'es', 'us'], index=0)
+        country_code = st.selectbox("País de Búsqueda (gl)", ['mx', 'ar', 'co', 'es', 'us', 'br'], index=0)
+        
+        language_code = st.selectbox("Idioma de Búsqueda (hl)", ['es', 'en', 'pt'], index=0)
 
-        # CAMBIO: Las palabras clave se ingresan en un área de texto.
+        # CAMBIO REALIZADO AQUÍ
         keywords_text = st.text_area(
             "Productos a buscar (uno por línea)",
-            "Sennheiser HD 450BT\nSennheiser MOMENTUM 4\nSennheiser IE 200"
+            "Keyword 1\nKeyword 2\nKeyword 3" 
         )
-
-        # El botón que inicia todo el proceso
+        
         submitted = st.form_submit_button("📊 Analizar Precios")
 
 # =============================================================================
 # 4. LÓGICA PRINCIPAL DE LA APP
-#    - Este bloque de código se ejecuta SÓLO si el usuario presionó el botón.
 # =============================================================================
 if submitted:
-    # Verificación de que los inputs necesarios están presentes
     if not api_key:
         st.error("Por favor, introduce tu API Key de SerpApi para continuar.")
     elif not keywords_text:
         st.error("Por favor, introduce al menos un producto para buscar.")
     else:
-        # Procesamos la lista de keywords desde el texto
         keywords_list = [keyword.strip() for keyword in keywords_text.split('\n') if keyword.strip()]
         
-        # El resto de tu lógica, adaptada para mostrar feedback en la app
         all_results = []
-        
-        # Placeholder para mostrar el progreso
         progress_bar = st.progress(0)
         status_text = st.empty()
 
@@ -78,8 +64,9 @@ if submitted:
                     "q": keyword,
                     "engine": "google",
                     "gl": country_code,
-                    "hl": "es-419",
+                    "hl": language_code,
                     "tbm": "shop",
+                    "num": 10,
                     "api_key": api_key
                 }
                 search = GoogleSearch(params)
@@ -93,7 +80,8 @@ if submitted:
                             'position': item.get('position'),
                             'title': item.get('title'),
                             'price': item.get('price'),
-                            'URL': item.get('link')
+                            'URL': item.get('link'),
+                            'Vendedor': item.get('source')
                         })
                 else:
                     st.warning(f"No se encontraron resultados de shopping para '{keyword}'.")
@@ -101,7 +89,6 @@ if submitted:
             except Exception as e:
                 st.error(f"Error al buscar '{keyword}': {e}")
             
-            # Actualizamos la barra de progreso
             progress_bar.progress((i + 1) / len(keywords_list))
 
         status_text.success("✅ ¡Búsqueda completada! Procesando datos...")
@@ -109,7 +96,6 @@ if submitted:
         if all_results:
             df_results = pd.DataFrame(all_results)
 
-            # --- LÓGICA DE LIMPIEZA Y ANÁLISIS (Tu código original) ---
             def clean_price(price_str):
                 if not isinstance(price_str, str): return np.nan
                 match = re.search(r'[\d,\.]+', price_str.replace(',', ''))
@@ -118,27 +104,38 @@ if submitted:
             df_results['numeric_price'] = df_results['price'].apply(clean_price)
             df_results.dropna(subset=['numeric_price'], inplace=True)
 
-            df_results['q1'] = df_results.groupby('Keyword')['numeric_price'].transform('quantile', 0.25)
-            df_results['q3'] = df_results.groupby('Keyword')['numeric_price'].transform('quantile', 0.75)
-            
-            conditions = [
-                (df_results['numeric_price'] < df_results['q1']),
-                (df_results['numeric_price'] > df_results['q3']),
-                (df_results['numeric_price'] >= df_results['q1']) & (df_results['numeric_price'] <= df_results['q3'])
-            ]
-            choices = ['bajo', 'alto', 'medio']
-            df_results['price_level'] = np.select(conditions, choices, default='')
+            if not df_results.empty:
+                df_results['q1'] = df_results.groupby('Keyword')['numeric_price'].transform('quantile', 0.25)
+                df_results['q3'] = df_results.groupby('Keyword')['numeric_price'].transform('quantile', 0.75)
+                
+                conditions = [
+                    (df_results['numeric_price'] < df_results['q1']),
+                    (df_results['numeric_price'] > df_results['q3']),
+                    (df_results['numeric_price'] >= df_results['q1']) & (df_results['numeric_price'] <= df_results['q3'])
+                ]
+                choices = ['bajo', 'alto', 'medio']
+                df_results['price_level'] = np.select(conditions, choices, default='')
+            else:
+                df_results['price_level'] = ''
 
-            desired_columns_order = ['Keyword', 'position', 'title', 'price', 'price_level', 'URL']
+
+            desired_columns_order = ['Keyword', 'position', 'title', 'Vendedor', 'price', 'price_level', 'URL']
             df_results = df_results[desired_columns_order]
 
-            # --- MOSTRAR RESULTADOS EN LA APP ---
             st.header("Resultados del Análisis")
-            st.dataframe(df_results)
+            
+            st.dataframe(
+                df_results,
+                column_config={
+                    "URL": st.column_config.LinkColumn("URL", display_text="🔗 Ver Producto"),
+                    "position": st.column_config.NumberColumn("Pos.", format="%d"),
+                },
+                use_container_width=True,
+                hide_index=True
+            )
             
             st.info(f"Total de filas generadas: {len(df_results)}")
 
-            # --- BOTÓN DE DESCARGA (reemplaza a files.download) ---
             csv = df_results.to_csv(index=False).encode('utf-8-sig')
             st.download_button(
                label="📥 Descargar resultados en CSV",
