@@ -5,10 +5,6 @@ import numpy as np
 import re
 from serpapi import GoogleSearch
 
-# NUEVO: Inicializar una variable de estado para la depuración
-if 'debug_info_shown' not in st.session_state:
-    st.session_state.debug_info_shown = False
-
 # =============================================================================
 # 2. CONFIGURACIÓN DE LA PÁGINA DE STREAMLIT
 # =============================================================================
@@ -41,9 +37,6 @@ with st.sidebar:
 # 4. LÓGICA PRINCIPAL DE LA APP
 # =============================================================================
 if submitted:
-    # Reiniciar el estado de depuración con cada envío
-    st.session_state.debug_info_shown = False
-
     if not api_key:
         st.error("Por favor, introduce tu API Key de SerpApi para continuar.")
     elif not keywords_text:
@@ -73,23 +66,14 @@ if submitted:
 
                 shopping_results = result.get('shopping_results', [])
                 if shopping_results:
-                    
-                    # --- INICIO DEL CÓDIGO DE DEPURACIÓN ---
-                    # Le pedimos a la app que nos muestre toda la información
-                    # del primer resultado que encuentre. Solo se mostrará una vez.
-                    if not st.session_state.debug_info_shown:
-                        st.info(f"Información de depuración para '{keyword}':")
-                        st.json(shopping_results[0])
-                        st.session_state.debug_info_shown = True
-                    # --- FIN DEL CÓDIGO DE DEPURACIÓN ---
-
                     for item in shopping_results:
                         all_results.append({
                             'Keyword': keyword,
                             'position': item.get('position'),
                             'title': item.get('title'),
                             'price': item.get('price'),
-                            'URL': item.get('link'),
+                            # CORRECCIÓN FINAL: Usamos 'product_link' en lugar de 'link'
+                            'URL': item.get('product_link'), 
                             'Vendedor': item.get('source')
                         })
                 else:
