@@ -1,0 +1,22 @@
+# .streamlit/config.toml
+
+[theme]
+
+# Color principal para elementos interactivos (botones, selectores).
+# He tomado el color naranja corporativo de tu logo.
+primaryColor="#E84E1B"
+
+# Color de fondo principal de la aplicación.
+# Blanco para que coincida con el fondo de tu blog.
+backgroundColor="#FFFFFF"
+
+# Color de fondo para elementos secundarios como la barra lateral.
+# Un gris muy claro que complementa el blanco.
+secondaryBackgroundColor="#F0F2F6"
+
+# Color del texto principal.
+textColor="#31333F"
+
+# Fuente a utilizar desde Google Fonts.
+# "Source Sans Pro" es muy similar a la que usas en tu blog.
+font="Source Sans Pro"
