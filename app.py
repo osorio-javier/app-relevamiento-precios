@@ -25,7 +25,7 @@ with st.sidebar:
 
     with st.form("input_form"):
         api_key = st.text_input("Tu API Key de SerpApi", type="password")
-        country_code = st.selectbox("País de Búsqueda (gl)", ['mx', 'ar', 'co', 'es', 'us', 'br'], index=0)
+        country_code = st.selectbox("País de Búsqueda (gl)", ['mx', 'ar', 'cl','co', 'es', 'us', 'br'], index=0)
         language_code = st.selectbox("Idioma de Búsqueda (hl)", ['es', 'en', 'pt'], index=0)
         keywords_text = st.text_area(
             "Productos a buscar (uno por línea)",
@@ -137,3 +137,4 @@ if submitted:
             )
         else:
             st.warning("No se obtuvieron resultados para ninguna de las búsquedas.")
+
